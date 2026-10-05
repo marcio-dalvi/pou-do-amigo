@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pou do Amigo</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --accent: #e94560;
+    --accent-hover: #ff6b6b;
+    --text: #eaeaea;
+    --muted: #888;
+    --radius: 16px;
+    --pou-body: #8b7355;
+    --pou-body-dark: #6b553d;
+    --pou-eye: #2d2d2d;
+    --pou-eye-white: #ffffff;
+    --pou-mouth: #4a3728;
+    --pou-blush: #d48a7a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #pet {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    cursor: grab;
+    will-change: left, top;
+    width: 160px;
+    height: 160px;
+  }
+  #pet.grabbing { cursor: grabbing; }
+  #pet .pou-container {
+    width: 160px;
+    height: 160px;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    position: relative;
+  }
+  
+  /* Triangular Pou body */
+  .pou-body {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 80px solid transparent;
+    border-right: 80px solid transparent;
+    border-bottom: 140px solid var(--pou-body);
+    border-radius: 0 0 40px 40px;
+    z-index: 2;
+  }
+  .pou-body::before {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 70px solid transparent;
+    border-right: 70px solid transparent;
+    border-bottom: 120px solid var(--pou-body-dark);
+    border-radius: 0 0 35px 35px;
+  }
+  
+  /* Head/top rounding */
+  .pou-head {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 60px;
+    background: var(--pou-body);
+    border-radius: 60px 60px 0 0;
+    z-index: 3;
+  }
+  
+  /* Eyes */
+  .pou-eyes {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .pou-eye {
+    width: 28px;
+    height: 32px;
+    background: var(--pou-eye);
+    border-radius: 50%;
+    position: relative;
+    animation: blink 4s ease-in-out infinite;
+  }
+  .pou-eye::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    width: 10px;
+    height: 10px;
+    background: var(--pou-eye-white);
+    border-radius: 50%;
+  }
+  .pou-eye.small { width: 20px; height: 16px; }
+  .pou-eye.small::before { top: 2px; left: 4px; width: 6px; height: 6px; }
+  .pou-eye.closed { height: 4px; border-radius: 14px; }
+  .pou-eye.closed::before { display: none; }
+  .pou-eye.looking-left::before { left: 4px; }
+  .pou-eye.looking-right::before { left: 14px; }
+  .pou-eye.looking-up::before { top: 2px; left: 8px; }
+  .pou-eye.looking-down::before { top: 12px; left: 8px; }
+  
+  @keyframes blink {
+    0%, 45%, 55%, 100% { height: 32px; }
+    50% { height: 4px; border-radius: 14px; }
+  }
+  
+  /* Mouth */
+  .pou-mouth {
+    position: absolute;
+    bottom: 55px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 18px;
+    background: var(--pou-mouth);
+    border-radius: 0 0 15px 15px;
+    z-index: 4;
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+  .pou-mouth.open {
+    height: 30px;
+    width: 40px;
+    border-radius: 0 0 20px 20px;
+  }
+  .pou-mouth.happy {
+    height: 12px;
+    width: 36px;
+    border-radius: 18px 18px 0 0;
+    background: transparent;
+    box-shadow: 0 -4px 0 0 var(--pou-mouth);
+    bottom: 58px;
+  }
+  .pou-mouth.sad {
+    height: 12px;
+    width: 30px;
+    border-radius: 0 0 15px 15px;
+    bottom: 52px;
+  }
+  
+  /* Blush */
+  .pou-blush {
+    position: absolute;
+    bottom: 70px;
+    width: 24px;
+    height: 16px;
+    background: var(--pou-blush);
+    border-radius: 50%;
+    opacity: 0.6;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .pou-blush.left { left: 20px; }
+  .pou-blush.right { right: 20px; }
+  
+  /* States */
+  #pet.happy .pou-mouth { 
+    height: 12px; width: 36px; border-radius: 18px 18px 0 0; 
+    background: transparent; box-shadow: 0 -4px 0 0 var(--pou-mouth); bottom: 58px;
+  }
+  #pet.happy .pou-eye { animation: none; }
+  #pet.happy .pou-eye::before { left: 12px; }
+  #pet.happy .pou-blush { opacity: 0.9; }
+  
+  #pet.hungry .pou-body { border-bottom-color: #a0522d; }
+  #pet.hungry .pou-body::before { border-bottom-color: #8b4513; }
+  #pet.hungry .pou-head { background: #a0522d; }
+  #pet.hungry .pou-mouth { background: #8b4513; }
+  #pet.hungry .pou-mouth.happy { box-shadow: 0 -4px 0 0 #8b4513; }
+  #pet.hungry .pou-eye::before { left: 4px; }
+  
+  #pet.sleeping .pou-eye { height: 4px; border-radius: 14px; animation: none; }
+  #pet.sleeping .pou-eye::before { display: none; }
+  #pet.sleeping .pou-mouth { height: 8px; width: 20px; }
+  #pet.sleeping .pou-blush { opacity: 0.3; }
+  
+  #pet.eating .pou-mouth { animation: chew 0.3s ease-in-out infinite; }
+  @keyframes chew {
+    0%, 100% { height: 18px; }
+    50% { height: 30px; width: 40px; border-radius: 0 0 20px 20px; }
+  }
+  
+  /* Speech bubble */
+  .speech-bubble {
+    position: absolute;
+    bottom: 180%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22,33,62,0.95);
+    border: 1px solid rgba(233,69,96,0.3);
+    border-radius: 16px;
+    padding: 10px 16px;
+    font-size: 13px;
+    white-space: nowrap;
+    max-width: 240px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+  .speech-bubble::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: rgba(233,69,96,0.3);
+  }
+  .speech-bubble.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
+  
+  /* Stats bar on pet */
+  .stat-bar {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 5px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 999px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .stat-bar.show { opacity: 1; }
+  .stat-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #ff6b6b);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+  
+  /* Particles */
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    border-radius: 50%;
+    z-index: 999;
+    animation: particle-life 0.8s ease-out forwards;
+  }
+  @keyframes particle-life {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+  
+  /* Animations on body */
+  #pet.floating .pou-body { animation: float-body 3s ease-in-out infinite; }
+  #pet.floating .pou-head { animation: float-head 3s ease-in-out infinite; }
+  #pet.floating .pou-eyes { animation: float-eyes 3s ease-in-out infinite; }
+  #pet.floating .pou-mouth { animation: float-mouth 3s ease-in-out infinite; }
+  #pet.floating .pou-blush { animation: float-blush 3s ease-in-out infinite; }
+  
+  @keyframes float-body { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+  @keyframes float-head { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+  @keyframes float-eyes { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+  @keyframes float-mouth { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+  @keyframes float-blush { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  
+  @keyframes bounce-body { 0%,100% { transform: translateX(-50%) scaleY(1); } 50% { transform: translateX(-50%) scaleY(0.9) translateY(-10px); } }
+  @keyframes shake-body { 0%,100% { transform: translateX(-50%); } 25% { transform: translateX(calc(-50% - 8px)); } 75% { transform: translateX(calc(-50% + 8px)); } }
+  
+  #pet.bouncing .pou-body { animation: bounce-body 0.5s ease; }
+  #pet.bouncing .pou-head { animation: bounce-body 0.5s ease; }
+  #pet.bouncing .pou-eyes { animation: bounce-body 0.5s ease; }
+  #pet.bouncing .pou-mouth { animation: bounce-body 0.5s ease; }
+  #pet.bouncing .pou-blush { animation: bounce-body 0.5s ease; }
+  
+  #pet.shaking .pou-body { animation: shake-body 0.4s ease; }
+  #pet.shaking .pou-head { animation: shake-body 0.4s ease; }
+  #pet.shaking .pou-eyes { animation: shake-body 0.4s ease; }
+  #pet.shaking .pou-mouth { animation: shake-body 0.4s ease; }
+  #pet.shaking .pou-blush { animation: shake-body 0.4s ease; }
+  
+  #pet.touch-active .pou-body { transform: translateX(-50%) scale(1.05); }
+  
+  /* UI Panel */
+  #ui-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--card);
+    border: 1px solid rgba(233,69,96,0.2);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    min-width: 240px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    z-index: 500;
+    transition: transform 0.3s, opacity 0.3s;
+    touch-action: auto;
+  }
+  #ui-panel.hidden { transform: translateY(140px); opacity: 0; pointer-events: none; }
+  #ui-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--accent); text-align: center; }
+  .stat-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 13px; }
+  .stat-row label { width: 90px; color: var(--muted); }
+  .stat-row .bar { flex: 1; height: 10px; background: rgba(0,0,0,0.4); border-radius: 999px; overflow: hidden; }
+  .stat-row .bar .fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+  .stat-row .bar .fill.hunger { background: linear-gradient(90deg, #e94560, #ff6b6b); }
+  .stat-row .bar .fill.happy { background: linear-gradient(90deg, #f5a623, #ffd700); }
+  .stat-row .bar .fill.energy { background: linear-gradient(90deg, #4ecdc4, #26d0ce); }
+  .stat-row span.val { width: 40px; text-align: right; font-weight: 600; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .btn {
+    flex: 1;
+    min-width: 75px;
+    background: linear-gradient(135deg, var(--accent), #c0392b);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.2s;
+    touch-action: manipulation;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:active { transform: scale(0.95); }
+  .btn.secondary { background: linear-gradient(135deg, #2a2a4a, #1a1a3e); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  
+  .toggle-ui {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #c0392b);
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(233,69,96,0.4);
+    z-index: 600;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+  .toggle-ui.visible { display: flex; }
+  
+  .kb-hint {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: var(--card);
+    border: 1px solid rgba(233,69,96,0.2);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    z-index: 400;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .kb-hint:hover { opacity: 1; }
+  .kb-hint kbd {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-size: 10px;
+    margin: 0 2px;
+  }
+  
+  /* Hearts */
+  .hearts { position: fixed; pointer-events: none; font-size: 22px; z-index: 999; animation: heart-rise 1s ease-out forwards; }
+  @keyframes heart-rise { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-70px) scale(1.5); opacity: 0; } }
+  
+  /* Food particle */
+  .food-particle { position: fixed; pointer-events: none; font-size: 24px; z-index: 999; animation: food-fall 0.8s ease-in forwards; }
+  @keyframes food-fall { 0% { transform: translateY(-50px) scale(0); opacity: 0; } 20% { opacity: 1; transform: scale(1.2); } 100% { transform: translateY(100px) scale(1); opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="pet" class="floating">
+  <div class="pou-container">
+    <div class="pou-body"></div>
+    <div class="pou-head"></div>
+    <div class="pou-eyes">
+      <div class="pou-eye left-eye"></div>
+      <div class="pou-eye right-eye"></div>
+    </div>
+    <div class="pou-mouth"></div>
+    <div class="pou-blush left"></div>
+    <div class="pou-blush right"></div>
+  </div>
+  <div class="speech-bubble" id="speech"></div>
+  <div class="stat-bar" id="hungerBar"><div class="fill" id="hungerFill"></div></div>
+</div>
+
+<div id="ui-panel" class="hidden">
+  <h3>📊 Status do Pou</h3>
+  <div class="stat-row">
+    <label>🍔 Fome</label>
+    <div class="bar"><div class="fill hunger" id="uiHunger" style="width: 70%"></div></div>
+    <span class="val" id="uiHungerVal">70%</span>
+  </div>
+  <div class="stat-row">
+    <label>😊 Felicidade</label>
+    <div class="bar"><div class="fill happy" id="uiHappy" style="width: 50%"></div></div>
+    <span class="val" id="uiHappyVal">50%</span>
+  </div>
+  <div class="stat-row">
+    <label>⚡ Energia</label>
+    <div class="bar"><div class="fill energy" id="uiEnergy" style="width: 60%"></div></div>
+    <span class="val" id="uiEnergyVal">60%</span>
+  </div>
+  <div class="btn-row">
+    <button class="btn" id="uiFeed" onclick="feed()">🍔 Comida</button>
+    <button class="btn secondary" id="uiPlay" onclick="play()">🎮 Brincar</button>
+    <button class="btn secondary" id="uiSleep" onclick="sleep()">😴 Dormir</button>
+  </div>
+</div>
+<button class="toggle-ui" id="toggleUI" onclick="toggleUI()" title="Mostrar painel">📊</button>
+
+<div class="kb-hint" id="kbHint">
+  <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> ou <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &nbsp;|&nbsp; <kbd>Espaço</kbd> cutuca &nbsp;|&nbsp; <kbd>Shift</kbd> correr
+</div>
+
+<script>
+const phrases = {
+  hungry: ["Tô com fome... 🍔", "Me dá um lanche? 🥪", "Barriga roncando 😭", "FOME CRÍTICA 🚨", "Cadê minha comida? 😤"],
+  fed: ["Ñam ñam ñam! 😋", "Delícia! Mais! 🍕", "Obrigado! Cheio 😌", "Hummm, gostoso! 🍰", "Melhor lanche! 😍"],
+  play: ["Whee! Legal! 🎉", "De novo! 🎮", "Tô feliz! 😄", "Melhor amigo! ❤️", "Yipeee! 🎈"],
+  sleep: ["Zzz... 😴", "Boa noite... 🌙", "Cansado... 💤", "Sonhando com burgers 🍔💭", "Não acorda... 😪"],
+  idle: ["Oi! 👋", "Tédio... 😐", "Brinca comigo? 🥺", "Me olha! 👀", "Sozinho... 😔"],
+  poke: ["Ei! Para! 😤", "Cosquinha! 😂", "O quê? 👀", "Cutucar é feio! 😜", "Hehe, para! 😝"],
+  drag: ["Wheeee! 🎢", "Me solta! 😱", "Voando! ✈️", "Auauau! 🎡", "Carrega eu! 💪"],
+  drop: ["Pouso suave 🛬", "Valeu! 😌", "De boa 😎", "Pronto! 💪"]
+};
+
+let hunger = 70, happiness = 50, energy = 60;
+let isSleeping = false, isDragging = false;
+let lastAction = Date.now(), lastIdleSpeech = Date.now();
+let lastBlinkTime = 0;
+
+// Auto-wander physics
+let vx = 0, vy = 0;
+let targetX = 0, targetY = 0;
+let wanderEnabled = true;
+
+// Keyboard movement
+const keysPressed = new Set();
+const MOVE_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD']);
+const KB_SPEED = 10;
+const KB_SPEED_FAST = 22;
+
+const PET_SIZE = 160;
+const PET_RADIUS = PET_SIZE / 2;
+const TOUCH_RADIUS = 100;
+
+const pet = document.getElementById('pet');
+const speech = document.getElementById('speech');
+const hungerBar = document.getElementById('hungerBar');
+const hungerFill = document.getElementById('hungerFill');
+const uiPanel = document.getElementById('ui-panel');
+const toggleUI = document.getElementById('toggleUI');
+const kbHint = document.getElementById('kbHint');
+const leftEye = document.querySelector('.left-eye');
+const rightEye = document.querySelector('.right-eye');
+const pouMouth = document.querySelector('.pou-mouth');
+
+const uiHunger = document.getElementById('uiHunger');
+const uiHappy = document.getElementById('uiHappy');
+const uiEnergy = document.getElementById('uiEnergy');
+const uiHungerVal = document.getElementById('uiHungerVal');
+const uiHappyVal = document.getElementById('uiHappyVal');
+const uiEnergyVal = document.getElementById('uiEnergyVal');
+const uiFeed = document.getElementById('uiFeed');
+const uiPlay = document.getElementById('uiPlay');
+const uiSleep = document.getElementById('uiSleep');
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function updateUI() {
+  uiHunger.style.width = hunger + '%'; uiHungerVal.textContent = hunger + '%';
+  uiHappy.style.width = happiness + '%'; uiHappyVal.textContent = happiness + '%';
+  uiEnergy.style.width = energy + '%'; uiEnergyVal.textContent = energy + '%';
+  hungerFill.style.width = hunger + '%';
+  hungerBar.classList.toggle('show', hunger < 40);
+  pet.classList.toggle('hungry', hunger < 35);
+  pet.classList.toggle('happy', happiness > 75);
+  pet.classList.toggle('sleeping', isSleeping);
+  uiFeed.disabled = hunger >= 95;
+  uiPlay.disabled = energy < 15;
+  uiSleep.disabled = energy >= 95;
+}
+
+function showSpeech(text, duration = 2500) {
+  speech.textContent = text;
+  speech.classList.add('show');
+  clearTimeout(speech._hideTimer);
+  speech._hideTimer = setTimeout(() => speech.classList.remove('show'), duration);
+}
+
+function spawnParticles(x, y, color = '#e94560', count = 10) {
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 6 + Math.random() * 10;
+    p.style.width = p.style.height = size + 'px';
+    p.style.background = color;
+    p.style.left = (x + (Math.random() - 0.5) * 50) + 'px';
+    p.style.top = (y + (Math.random() - 0.5) * 50) + 'px';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+  }
+}
+
+function spawnHearts(x, y) {
+  for (let i = 0; i < 6; i++) {
+    const h = document.createElement('div');
+    h.className = 'hearts';
+    h.textContent = ['❤️','💛','💚','💙','💜','🧡'][Math.floor(Math.random()*6)];
+    h.style.left = (x + (Math.random()-0.5)*70) + 'px';
+    h.style.top = (y + 10) + 'px';
+    h.style.animationDelay = (i * 0.08) + 's';
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 1000);
+  }
+}
+
+function spawnFood(x, y) {
+  const foods = ['🍔','🍕','🍟','🌭','🍗','🍰','🍩','🍪','🥪','🌮'];
+  for (let i = 0; i < 8; i++) {
+    const f = document.createElement('div');
+    f.className = 'food-particle';
+    f.textContent = foods[Math.floor(Math.random()*foods.length)];
+    f.style.left = (x + (Math.random()-0.5)*60) + 'px';
+    f.style.top = (y - 40) + 'px';
+    f.style.animationDelay = (i * 0.05) + 's';
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 900);
+  }
+}
+
+// --- Movement: single source of truth ---
+function movePetBy(dx, dy) {
+  const rect = pet.getBoundingClientRect();
+  const cx = rect.left + PET_RADIUS;
+  const cy = rect.top + PET_RADIUS;
+  
+  const newX = clamp(cx + dx, PET_RADIUS, window.innerWidth - PET_RADIUS);
+  const newY = clamp(cy + dy, PET_RADIUS, window.innerHeight - PET_RADIUS - 140);
+  
+  pet.style.left = (newX - PET_RADIUS) + 'px';
+  pet.style.top = (newY - PET_RADIUS) + 'px';
+  pet.style.transform = 'none';
+  
+  return { x: newX, y: newY };
+}
+
+// Auto-wander physics
+function pickWanderTarget() {
+  const padding = 100;
+  targetX = padding + Math.random() * (window.innerWidth - padding * 2);
+  targetY = padding + Math.random() * (window.innerHeight - padding * 2 - 140);
+}
+
+function physicsStep() {
+  if (!wanderEnabled || isDragging || isSleeping) return;
+  
+  const rect = pet.getBoundingClientRect();
+  const cx = rect.left + PET_RADIUS;
+  const cy = rect.top + PET_RADIUS;
+
+  const dx = targetX - cx;
+  const dy = targetY - cy;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 30) { pickWanderTarget(); return; }
+
+  const accel = 0.08;
+  vx += (dx / dist) * accel;
+  vy += (dy / dist) * accel;
+
+  vx *= 0.92;
+  vy *= 0.92;
+
+  movePetBy(vx, vy);
+
+  const r2 = pet.getBoundingClientRect();
+  const cx2 = r2.left + PET_RADIUS;
+  const cy2 = r2.top + PET_RADIUS;
+  if (cx2 <= PET_RADIUS || cx2 >= window.innerWidth - PET_RADIUS) vx *= -0.5;
+  if (cy2 <= PET_RADIUS || cy2 >= window.innerHeight - PET_RADIUS - 140) vy *= -0.5;
+}
+
+// Keyboard step (priority)
+function keyboardStep() {
+  if (isDragging || isSleeping) return;
+  
+  let kx = 0, ky = 0;
+  if (keysPressed.has('ArrowUp') || keysPressed.has('KeyW')) ky -= 1;
+  if (keysPressed.has('ArrowDown') || keysPressed.has('KeyS')) ky += 1;
+  if (keysPressed.has('ArrowLeft') || keysPressed.has('KeyA')) kx -= 1;
+  if (keysPressed.has('ArrowRight') || keysPressed.has('KeyD')) kx += 1;
+  
+  const anyMoveKey = kx !== 0 || ky !== 0;
+  wanderEnabled = !anyMoveKey;
+  
+  if (anyMoveKey) {
+    const len = Math.hypot(kx, ky);
+    kx /= len; ky /= len;
+    
+    const speed = (keysPressed.has('ShiftLeft') || keysPressed.has('ShiftRight')) ? KB_SPEED_FAST : KB_SPEED;
+    movePetBy(kx * speed, ky * speed);
+    
+    // Eye follow movement direction
+    updateEyeDirection(kx, ky);
+    
+    vx = 0; vy = 0;
+  } else {
+    // Reset eyes to center when not moving
+    leftEye.classList.remove('looking-left','looking-right','looking-up','looking-down');
+    rightEye.classList.remove('looking-left','looking-right','looking-up','looking-down');
+  }
+}
+
+function updateEyeDirection(kx, ky) {
+  leftEye.classList.remove('looking-left','looking-right','looking-up','looking-down');
+  rightEye.classList.remove('looking-left','looking-right','looking-up','looking-down');
+  
+  if (kx < -0.3) { leftEye.classList.add('looking-left'); rightEye.classList.add('looking-left'); }
+  else if (kx > 0.3) { leftEye.classList.add('looking-right'); rightEye.classList.add('looking-right'); }
+  else if (ky < -0.3) { leftEye.classList.add('looking-up'); rightEye.classList.add('looking-up'); }
+  else if (ky > 0.3) { leftEye.classList.add('looking-down'); rightEye.classList.add('looking-down'); }
+}
+
+// Blink control
+function updateBlink() {
+  const now = Date.now();
+  if (now - lastBlinkTime > 3000 + Math.random() * 4000) {
+    leftEye.classList.add('closed');
+    rightEye.classList.add('closed');
+    setTimeout(() => {
+      leftEye.classList.remove('closed');
+      rightEye.classList.remove('closed');
+    }, 150);
+    lastBlinkTime = now;
+  }
+}
+
+// --- Stats decay ---
+function decay() {
+  const now = Date.now();
+  const diff = (now - lastAction) / 1000;
+  if (diff > 3) {
+    const steps = Math.floor(diff / 3);
+    hunger = clamp(hunger - steps * 2, 0, 100);
+    happiness = clamp(happiness - steps * 1, 0, 100);
+    if (!isSleeping) energy = clamp(energy - steps * 1, 0, 100);
+    else energy = clamp(energy + steps * 3, 0, 100);
+    lastAction = now;
+    updateUI();
+  }
+}
+
+function checkIdle() {
+  if (isSleeping) return;
+  const now = Date.now();
+  if (now - lastIdleSpeech > 15000) {
+    if (hunger < 30) showSpeech(pick(phrases.hungry), 4000);
+    else if (happiness < 30) showSpeech(pick(phrases.idle), 4000);
+    else if (energy < 20) showSpeech(pick(phrases.sleep), 4000);
+    else if (Math.random() < 0.3) showSpeech(pick(phrases.idle), 3000);
+    lastIdleSpeech = now;
+  }
+}
+
+// --- Actions ---
+function feed() {
+  if (hunger >= 95) return;
+  hunger = clamp(hunger + 30, 0, 100);
+  happiness = clamp(happiness + 10, 0, 100);
+  energy = clamp(energy + 5, 0, 100);
+  lastAction = Date.now();
+  showSpeech(pick(phrases.fed));
+  pet.classList.add('bouncing', 'eating');
+  setTimeout(() => { pet.classList.remove('bouncing', 'eating'); }, 1000);
+  const r = pet.getBoundingClientRect();
+  spawnParticles(r.left + PET_RADIUS, r.top + PET_RADIUS, '#f5a623', 15);
+  spawnHearts(r.left + PET_RADIUS, r.top + PET_RADIUS);
+  spawnFood(r.left + PET_RADIUS, r.top - 20);
+  updateUI();
+}
+
+function play() {
+  if (energy < 15) { showSpeech(pick(phrases.sleep)); return; }
+  happiness = clamp(happiness + 25, 0, 100);
+  hunger = clamp(hunger - 10, 0, 100);
+  energy = clamp(energy - 15, 0, 100);
+  lastAction = Date.now();
+  showSpeech(pick(phrases.play));
+  pet.classList.add('bouncing');
+  setTimeout(() => pet.classList.remove('bouncing'), 500);
+  vx += (Math.random() - 0.5) * 8;
+  vy -= 8;
+  const r = pet.getBoundingClientRect();
+  spawnParticles(r.left + PET_RADIUS, r.top + PET_RADIUS, '#4ecdc4', 12);
+  spawnHearts(r.left + PET_RADIUS, r.top + PET_RADIUS);
+  updateUI();
+}
+
+function sleep() {
+  if (energy >= 95) return;
+  isSleeping = !isSleeping;
+  if (isSleeping) {
+    showSpeech(pick(phrases.sleep), 5000);
+    pet.classList.remove('floating');
+    pet.classList.add('sleeping');
+  } else {
+    showSpeech("Bom dia! ☀️");
+    pet.classList.add('floating');
+    pet.classList.remove('sleeping');
+    pickWanderTarget();
+  }
+  updateUI();
+}
+
+// --- DRAG SYSTEM ---
+let dragOffsetX = 0, dragOffsetY = 0;
+let dragStartTime = 0;
+const CLICK_THRESHOLD = 300;
+
+function getClientXY(e) {
+  if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.changedTouches && e.changedTouches[0]) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+function isOverPet(clientX, clientY) {
+  const rect = pet.getBoundingClientRect();
+  const cx = rect.left + PET_RADIUS;
+  const cy = rect.top + PET_RADIUS;
+  return Math.hypot(clientX - cx, clientY - cy) <= TOUCH_RADIUS;
+}
+
+function onPointerDown(clientX, clientY, e) {
+  if (!isOverPet(clientX, clientY)) return false;
+  
+  isDragging = true;
+  wanderEnabled = false;
+  const rect = pet.getBoundingClientRect();
+  dragOffsetX = clientX - rect.left;
+  dragOffsetY = clientY - rect.top;
+  dragStartTime = Date.now();
+  
+  pet.classList.add('grabbing', 'touch-active');
+  pet.classList.remove('floating');
+  pet.style.transform = 'none';
+  
+  showSpeech(pick(phrases.drag), 1500);
+  return true;
+}
+
+function onPointerMove(clientX, clientY, e) {
+  if (!isDragging) return;
+  
+  const newLeft = clientX - dragOffsetX;
+  const newTop = clientY - dragOffsetY;
+  
+  pet.style.left = clamp(newLeft, 0, window.innerWidth - PET_SIZE) + 'px';
+  pet.style.top = clamp(newTop, 0, window.innerHeight - PET_SIZE - 140) + 'px';
+  
+  // Eyes follow drag
+  const rect = pet.getBoundingClientRect();
+  const cx = rect.left + PET_RADIUS;
+  const cy = rect.top + PET_RADIUS;
+  const dx = (clientX - cx) / 100;
+  const dy = (clientY - cy) / 100;
+  updateEyeDirection(dx, dy);
+}
+
+function onPointerUp(clientX, clientY, e) {
+  if (!isDragging) return;
+  
+  const wasDragging = isDragging;
+  const duration = Date.now() - dragStartTime;
+  
+  isDragging = false;
+  pet.classList.remove('grabbing', 'touch-active');
+  
+  if (!isSleeping) pet.classList.add('floating');
+  
+  leftEye.classList.remove('looking-left','looking-right','looking-up','looking-down');
+  rightEye.classList.remove('looking-left','looking-right','looking-up','looking-down');
+  
+  if (wasDragging && duration > CLICK_THRESHOLD) {
+    showSpeech(pick(phrases.drop));
+    pickWanderTarget();
+    vx = 0; vy = 0;
+    wanderEnabled = true;
+  } else if (wasDragging) {
+    onTap(clientX, clientY);
+  }
+}
+
+function onTap(clientX, clientY) {
+  if (!isOverPet(clientX, clientY)) return;
+  showSpeech(pick(phrases.poke));
+  pet.classList.add('shaking');
+  setTimeout(() => pet.classList.remove('shaking'), 400);
+  const rect = pet.getBoundingClientRect();
+  spawnParticles(rect.left + PET_RADIUS, rect.top + PET_RADIUS, '#ff6b6b', 8);
+  // Quick eye reaction
+  leftEye.classList.add('looking-up');
+  rightEye.classList.add('looking-up');
+  setTimeout(() => {
+    leftEye.classList.remove('looking-up');
+    rightEye.classList.remove('looking-up');
+  }, 300);
+}
+
+// --- Keyboard Controls ---
+window.addEventListener('keydown', e => {
+  const code = e.code;
+  if (MOVE_KEYS.has(code) || code === 'ShiftLeft' || code === 'ShiftRight' || code === 'Space') {
+    keysPressed.add(code);
+    e.preventDefault();
+  }
+  
+  if (code === 'Space' && !isDragging && !isSleeping && e.target === document.body) {
+    e.preventDefault();
+    const rect = pet.getBoundingClientRect();
+    onTap(rect.left + PET_RADIUS, rect.top + PET_RADIUS);
+  }
+});
+
+window.addEventListener('keyup', e => {
+  keysPressed.delete(e.code);
+});
+
+window.addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// --- Mouse Events ---
+window.addEventListener('mousedown', e => {
+  if (onPointerDown(e.clientX, e.clientY, e)) e.preventDefault();
+});
+window.addEventListener('mousemove', e => onPointerMove(e.clientX, e.clientY, e));
+window.addEventListener('mouseup', e => onPointerUp(e.clientX, e.clientY, e));
+
+// --- Touch Events ---
+window.addEventListener('touchstart', e => {
+  const coords = getClientXY(e);
+  if (onPointerDown(coords.x, coords.y, e)) e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('touchmove', e => {
+  if (isDragging) {
+    e.preventDefault();
+    const coords = getClientXY(e);
+    onPointerMove(coords.x, coords.y, e);
+  }
+}, { passive: false });
+
+window.addEventListener('touchend', e => {
+  if (isDragging) {
+    e.preventDefault();
+    const coords = getClientXY(e);
+    onPointerUp(coords.x, coords.y, e);
+  }
+}, { passive: false });
+
+window.addEventListener('touchcancel', e => {
+  if (isDragging) {
+    const coords = getClientXY(e);
+    onPointerUp(coords.x, coords.y, e);
+  }
+}, { passive: true });
+
+window.addEventListener('resize', () => {
+  const rect = pet.getBoundingClientRect();
+  pet.style.left = clamp(rect.left, 0, window.innerWidth - PET_SIZE) + 'px';
+  pet.style.top = clamp(rect.top, 0, window.innerHeight - PET_SIZE - 140) + 'px';
+});
+
+function toggleUI() {
+  uiPanel.classList.toggle('hidden');
+  toggleUI.classList.toggle('visible', uiPanel.classList.contains('hidden'));
+}
+
+// Init
+pickWanderTarget();
+pet.style.left = (window.innerWidth/2 - PET_RADIUS) + 'px';
+pet.style.top = (window.innerHeight/2 - PET_RADIUS) + 'px';
+pet.style.transform = 'none';
+console.log('Pou initialized at', pet.style.left, pet.style.top);
+updateUI();
+
+// Main loop
+function gameLoop() {
+  updateBlink();
+  keyboardStep();
+  physicsStep();
+  decay();
+  checkIdle();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+// Hide UI panel after 5s idle
+let uiHideTimer;
+function resetUIHide() {
+  uiPanel.classList.remove('hidden');
+  toggleUI.classList.remove('visible');
+  clearTimeout(uiHideTimer);
+  uiHideTimer = setTimeout(() => { uiPanel.classList.add('hidden'); toggleUI.classList.add('visible'); }, 5000);
+}
+[uiFeed, uiPlay, uiSleep, uiPanel].forEach(el => el.addEventListener('mouseenter', resetUIHide));
+[uiFeed, uiPlay, uiSleep, uiPanel].forEach(el => el.addEventListener('touchstart', resetUIHide, {passive: true}));
+resetUIHide();
+</script>
+</body>
+</html>
